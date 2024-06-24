@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}Execute Task{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="header-section">
+        <h1>Execute Task</h1>
+        <p class="text-muted">Execute a task with selected agents and instructions</p>
+    </div>
+    <form id="taskForm" method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="prompts">Select Saved Prompt:</label>
+            <select id="prompts" class="form-control" onchange="loadPrompt(this.value)">
+                <option value="">Select a prompt</option>
+                {% for prompt in prompts %}
+                <option value="{{ prompt.id }}">{{ prompt.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="agents">Select Agents:</label>
+            <select id="agents" name="agents" class="form-control" multiple>
+                {% for agent in agents %}
+                <option value="{{ agent }}">{{ agent }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="instructions">Instructions:</label>
+            <textarea id="instructions" name="instructions" class="form-control" rows="3" placeholder="Enter the task instructions"></textarea>
+            <small class="form-text text-muted">Detailed instructions for the agents to execute.</small>
+        </div>
+        <div class="form-group">
+            <label for="upload-file">Upload File (optional):</label>
+            <input type="file" class="form-control-file" id="upload-file" name="upload_file">
+            <small class="form-text text-muted">Attach any file necessary for the task execution.</small>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="collaborate" name="collaborate">
+            <label class="form-check-label" for="collaborate">Collaborative</label>
+            <small class="form-text text-muted">Allow agents to collaborate and show logical thinking in the output.</small>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="executeTask()">Execute</button>
+        <button type="button" class="btn btn-secondary" onclick="savePrompt()">Save Prompt</button>
+        <div class="loading" style="display:none;">
+            <i class="fas fa-spinner fa-spin fa-3x"></i>
+        </div>
+    </form>
+    <h2 class="mt-5">Task Output</h2>
+    <div id="outputs"></div>
+    <div class="form-group mt-4">
+        <label for="outputSelector">Select Output to Send to Slack:</label>
+        <select id="outputSelector" class="form-control">
+            <option value="">Select Output</option>
+            <!-- Options will be dynamically filled -->
+        </select>
+    </div>
+    <button type="button" class="btn btn-primary" onclick="openSlackModal()">Send to Slack</button>
+</div>
+
+<!-- Slack Modal -->
+<div class="modal fade" id="slackModal" tabindex="-1" aria-labelledby="slackModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="slackModalLabel">Send to Slack</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="slackForm">
+                    <div class="form-group">
+                        <label for="slackRecipient">Select User or Channel:</label>
+                        <input type="text" class="form-control" id="slackRecipient" placeholder="Search for users or channels">
+                        <div id="slackResults" class="mt-2">
+                            <!-- Search results will be displayed here -->
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="slackMessage">Message:</label>
+                        <textarea class="form-control" id="slackMessage" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="sendMessageToSlack()">Send</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let outputsData = {};
+
+    async function executeTask() {
+        const form = document.getElementById('taskForm');
+        const formData = new FormData(form);
+        const loading = document.querySelector('.loading');
+        loading.style.display = 'block';
+
+        try {
+            const response = await fetch('/execute', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            displayOutput(data);
+        } catch (error) {
+            console.error('Error:', error);
+        } finally {
+            loading.style.display = 'none';
+        }
+    }
+
+    function displayOutput(data) {
+        const outputs = document.getElementById('outputs');
+        outputs.innerHTML = '';
+        const outputSelector = document.getElementById('outputSelector');
+        outputSelector.innerHTML = '<option value="">Select Output</option>';
+
+        data.output.agent_responses.forEach((agentResponse, index) => {
+            const outputSection = document.createElement('div');
+            outputSection.classList.add('output-section', 'mb-3');
+            outputSection.innerHTML = `
+                <h3 onclick="toggleOutput(${index})">${agentResponse.role} Output</h3>
+                <div id="output${index}" class="output-content">
+                    ${formatOutput(agentResponse.response)}
+                </div>
+            `;
+            outputs.appendChild(outputSection);
+            outputsData[index] = agentResponse.response;
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = agentResponse.role;
+            outputSelector.appendChild(option);
+        });
+
+        if (data.output.manager_response) {
+            const managerSection = document.createElement('div');
+            managerSection.classList.add('output-section', 'mb-3');
+            managerSection.innerHTML = `
+                <h3 onclick="toggleOutput('manager')">Manager Agent Output</h3>
+                <div id="outputmanager" class="output-content">
+                    ${formatOutput(data.output.manager_response)}
+                </div>
+            `;
+            outputs.appendChild(managerSection);
+        }
+    }
+
+    function toggleOutput(index) {
+        const outputContent = document.getElementById(`output${index}`);
+        if (outputContent.style.display === 'none' || outputContent.style.display === '') {
+            outputContent.style.display = 'block';
+        } else {
+            outputContent.style.display = 'none';
+        }
+    }
+
+    function formatOutput(response) {
+        let formatted = response.replace(/<br><br>/g, '</p><p>').replace(/<br>/g, '<br>');
+        formatted = `<p>${formatted}</p>`;
+        return formatted;
+    }
+
+    async function searchPrompts() {
+        const query = document.getElementById('promptSearch').value;
+
+        try {
+            const response = await fetch(`/search_prompts?query=${query}`);
+            const data = await response.json();
+            let resultsHtml = '<ul>';
+            data.results.forEach(prompt => {
+                resultsHtml += `<li><button class="btn btn-link" onclick="populatePrompt('${prompt.instructions}')">${prompt.instructions}</button></li>`;
+            });
+            resultsHtml += '</ul>';
+            document.getElementById('promptResults').innerHTML = resultsHtml;
+        } catch (error) {
+            document.getElementById('promptResults').innerHTML = 'Error fetching results. Please try again.';
+            console.error('Error:', error);
+        }
+    }
+
+    function populatePrompt(instructions) {
+        document.getElementById('instructions').value = instructions;
+    }
+
+    async function savePrompt() {
+        const form = document.getElementById('taskForm');
+        const formData = new FormData(form);
+
+        const promptData = {};
+        formData.forEach((value, key) => {
+            promptData[key] = value;
+        });
+
+        try {
+            const response = await fetch('/save_prompt', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(promptData)
+            });
+            const result = await response.json();
+            if (result.success) {
+                alert('Prompt saved successfully');
+            } else {
+                alert('Error saving prompt: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    function openSlackModal() {
+        const selectedOutputIndex = document.getElementById('outputSelector').value;
+        if (selectedOutputIndex === '') {
+            alert('Please select an output to send to Slack.');
+            return;
+        }
+        const selectedOutput = outputsData[selectedOutputIndex];
+        document.getElementById('slackMessage').value = selectedOutput;
+        const slackModal = new bootstrap.Modal(document.getElementById('slackModal'));
+        slackModal.show();
+    }
+
+    document.getElementById('slackRecipient').addEventListener('input', async function() {
+        const query = this.value;
+        const resultsDiv = document.getElementById('slackResults');
+        resultsDiv.innerHTML = '';
+
+        if (query.length > 2) {
+            try {
+                const response = await fetch(`/search_slack?query=${query}`);
+                const data = await response.json();
+                data.results.forEach(result => {
+                    const button = document.createElement('button');
+                    button.classList.add('btn', 'btn-link');
+                    button.textContent = result.name;
+                    button.onclick = () => {
+                        document.getElementById('slackRecipient').value = result.name;
+                    };
+                    resultsDiv.appendChild(button);
+                });
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+    });
+
+    async function sendMessageToSlack() {
+        const recipient = document.getElementById('slackRecipient').value;
+        const message = document.getElementById('slackMessage').value;
+
+        try {
+            const response = await fetch('/send_to_slack', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ recipient, message })
+            });
+            const result = await response.json();
+            if (result.success) {
+                alert(`Message sent to ${recipient} successfully`);
+            } else {
+                alert(`Error sending message to ${recipient}: ${result.error}`);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    async function loadPrompt(promptId) {
+        if (!promptId) return;
+
+        try {
+            const response = await fetch(`/get_prompt/${promptId}`);
+            const prompt = await response.json();
+
+            document.getElementById('agents').value = prompt.agents.join(', ');
+            document.getElementById('instructions').value = prompt.instructions;
+            document.getElementById('output').value = prompt.output;
+        } catch (error) {
+            console.error('Error loading prompt:', error);
+        }
+    }
+</script>
+{% endblock %}

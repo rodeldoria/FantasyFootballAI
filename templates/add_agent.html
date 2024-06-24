@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Add Agent{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="header-section">
+        <h1>Add Agent</h1>
+        <p class="text-muted">Add a new IT Service Management agent</p>
+    </div>
+    <div class="form-group">
+        <label for="aiInstructions">AI Instructions:</label>
+        <textarea id="aiInstructions" name="aiInstructions" class="form-control" placeholder="Enter instructions for AI to populate fields"></textarea>
+        <button id="aiButton" class="btn btn-secondary mt-2">Populate Fields with AI</button>
+    </div>
+    <div id="loading-spinner" class="spinner" style="display: none;"></div>
+    <form id="addAgentForm" method="post">
+        <div class="form-group">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name" class="form-control" placeholder="e.g., Release Manager" required>
+            <small class="form-text text-muted">The official title of the agent.</small>
+        </div>
+        <div class="form-group">
+            <label for="role">Role:</label>
+            <input type="text" id="role" name="role" class="form-control" placeholder="e.g., Manage Releases" required>
+            <small class="form-text text-muted">A brief description of the agent's responsibilities.</small>
+        </div>
+        <div class="form-group">
+            <label for="goal">Goal:</label>
+            <input type="text" id="goal" name="goal" class="form-control" placeholder="e.g., Ensure smooth release of new features" required>
+            <small class="form-text text-muted">The primary objective of the agent.</small>
+        </div>
+        <div class="form-group">
+            <label for="description">Description:</label>
+            <textarea id="description" name="description" class="form-control" placeholder="e.g., Oversee the release process to ensure new features are deployed smoothly and efficiently." required></textarea>
+            <small class="form-text text-muted">Detailed description of the agent's duties.</small>
+        </div>
+        <div class="form-group">
+            <label for="expected_output">Expected Output:</label>
+            <input type="text" id="expected_output" name="expected_output" class="form-control" placeholder="e.g., Successful release of features" required>
+            <small class="form-text text-muted">The expected results or outcomes of the agent's work.</small>
+        </div>
+        <div class="form-group">
+            <label for="max_iter">Max Iterations:</label>
+            <input type="number" id="max_iter" name="max_iter" class="form-control" placeholder="e.g., 10" required>
+            <small class="form-text text-muted">The maximum number of iterations the agent should perform.</small>
+        </div>
+        <div class="form-group">
+            <label for="allow_delegation">Allow Delegation:</label>
+            <select id="allow_delegation" name="allow_delegation" class="form-control" required>
+                <option value="True">True</option>
+                <option value="False">False</option>
+            </select>
+            <small class="form-text text-muted">Whether the agent can delegate tasks to others.</small>
+        </div>
+        <div class="form-group">
+            <label for="verbose">Verbose:</label>
+            <select id="verbose" name="verbose" class="form-control" required>
+                <option value="True">True</option>
+                <option value="False">False</option>
+            </select>
+            <small class="form-text text-muted">Whether the agent should provide detailed output.</small>
+        </div>
+        <div class="form-group">
+            <label for="is_master">Master Agent:</label>
+            <select id="is_master" name="is_master" class="form-control" required>
+                <option value="True">True</option>
+                <option value="False">False</option>
+            </select>
+            <small class="form-text text-muted">Indicates if this is the master agent responsible for overseeing other agents.</small>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Agent</button>
+    </form>
+</div>
+
+<script>
+    document.getElementById('aiButton').addEventListener('click', function() {
+        document.getElementById('loading-spinner').style.display = 'block';
+        const instructions = document.getElementById('aiInstructions').value;
+        fetch('/ai_populate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ instructions: instructions })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            document.getElementById('loading-spinner').style.display = 'none';
+            if (data.success) {
+                document.getElementById('name').value = data.name;
+                document.getElementById('role').value = data.role;
+                document.getElementById('goal').value = data.goal;
+                document.getElementById('description').value = data.description;
+                document.getElementById('expected_output').value = data.expected_output;
+                document.getElementById('max_iter').value = data.max_iter;
+                document.getElementById('allow_delegation').value = data.allow_delegation;
+                document.getElementById('verbose').value = data.verbose;
+                document.getElementById('is_master').value = data.is_master;
+            } else {
+                alert('Failed to populate fields: ' + data.error);
+            }
+        })
+        .catch(error => {
+            document.getElementById('loading-spinner').style.display = 'none';
+            console.error('There was an error with the fetch operation:', error);
+            alert('Error: ' + error.message);
+        });
+    });
+</script>
+
+{% endblock %}

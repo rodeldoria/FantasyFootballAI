@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>List/Modify ITSM Agents</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f4f6f9;
+            font-family: 'Salesforce Sans', Arial, sans-serif;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .btn-primary {
+            background-color: #0070d2;
+            border-color: #0070d2;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+        .form-control {
+            border-radius: 4px;
+        }
+        h1, h2 {
+            color: #2a2a2a;
+        }
+        .navbar {
+            background-color: #0070d2;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .edit-form {
+            display: none;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-section">
+            <h1>List/Modify ITSM Agents</h1>
+            <p class="text-muted">View and edit IT Service Management agents</p>
+        </div>
+        <div id="currentAgents">
+            {% if agents %}
+                {% for agent in agents %}
+                    <div class="card mb-3">
+                        <div class="card-header">{{ agent.name }}</div>
+                        <div class="card-body">
+                            <p><strong>Role:</strong> {{ agent.role }}</p>
+                            <p><strong>Goal:</strong> {{ agent.goal }}</p>
+                            <p><strong>Description:</strong> {{ agent.description }}</p>
+                            <p><strong>Expected Output:</strong> {{ agent.expected_output }}</p>
+                            <p><strong>Max Iterations:</strong> {{ agent.max_iter }}</p>
+                            <p><strong>Allow Delegation:</strong> {{ agent.allow_delegation }}</p>
+                            <p><strong>Verbose:</strong> {{ agent.verbose }}</p>
+                            <p><strong>Master Agent:</strong> {{ agent.is_master }}</p>
+                            <button type="button" class="btn btn-secondary mt-3" onclick="showEditForm('{{ agent.name }}', '{{ agent.role }}', '{{ agent.goal }}', '{{ agent.description }}', '{{ agent.expected_output }}', '{{ agent.max_iter }}', '{{ agent.allow_delegation }}', '{{ agent.verbose }}', '{{ agent.is_master }}')">Edit</button>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p>No agents found.</p>
+            {% endif %}
+        </div>
+        <div class="edit-form" id="editForm">
+            <h2>Edit Agent</h2>
+            <form id="editAgentForm">
+                <input type="hidden" id="editName" name="name">
+                <div class="form-group">
+                    <label for="editRole">Role:</label>
+                    <input type="text" id="editRole" name="role" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="editGoal">Goal:</label>
+                    <input type="text" id="editGoal" name="goal" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="editDescription">Description:</label>
+                    <textarea id="editDescription" name="description" class="form-control" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="editExpectedOutput">Expected Output:</label>
+                    <input type="text" id="editExpectedOutput" name="expected_output" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="editMaxIter">Max Iterations:</label>
+                    <input type="number" id="editMaxIter" name="max_iter" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="editAllowDelegation">Allow Delegation:</label>
+                    <select id="editAllowDelegation" name="allow_delegation" class="form-control" required>
+                        <option value="True">True</option>
+                        <option value="False">False</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editVerbose">Verbose:</label>
+                    <select id="editVerbose" name="verbose" class="form-control" required>
+                        <option value="True">True</option>
+                        <option value="False">False</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editIsMaster">Master Agent:</label>
+                    <select id="editIsMaster" name="is_master" class="form-control" required>
+                        <option value="True">True</option>
+                        <option value="False">False</option>
+                    </select>
+                </div>
+                <button type="button" class="btn btn-primary" onclick="updateAgent()">Update Agent</button>
+                <button type="button" class="btn btn-secondary" onclick="hideEditForm()">Cancel</button>
+            </form>
+        </div>
+        <a href="/add_agent" class="btn btn-primary mt-4">Add/Remove Agents</a>
+        <a href="/" class="btn btn-secondary mt-4">Back to Execution Tool</a>
+    </div>
+
+    <script>
+        function showEditForm(name, role, goal, description, expected_output, max_iter, allow_delegation, verbose, is_master) {
+            document.getElementById('editName').value = name;
+            document.getElementById('editRole').value = role;
+            document.getElementById('editGoal').value = goal;
+            document.getElementById('editDescription').value = description;
+            document.getElementById('editExpectedOutput').value = expected_output;
+            document.getElementById('editMaxIter').value = max_iter;
+            document.getElementById('editAllowDelegation').value = allow_delegation;
+            document.getElementById('editVerbose').value = verbose;
+            document.getElementById('editIsMaster').value = is_master;
+            document.getElementById('editForm').style.display = 'block';
+            window.scrollTo(0, document.getElementById('editForm').offsetTop);
+        }
+
+        function hideEditForm() {
+            document.getElementById('editForm').style.display = 'none';
+        }
+
+        async function updateAgent() {
+            const form = document.getElementById('editAgentForm');
+            const formData = new FormData(form);
+            
+            const agentData = {};
+            formData.forEach((value, key) => {
+                agentData[key] = value;
+            });
+
+            try {
+                const response = await fetch('/list_agents', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(agentData)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert('Agent updated successfully');
+                    window.location.reload();
+                } else {
+                    alert('Error updating agent: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}ITSM AI{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="header-section">
+        <h1>ITSM AI</h1>
+        <p class="text-muted">Automate your IT Service Management tasks with AI</p>
+        <p>This tool helps manage IT services by coordinating various agent roles to solve problems and implement solutions efficiently. Each agent specializes in a specific aspect of IT service management, ensuring comprehensive coverage of all tasks.</p>
+    </div>
+    <a href="/add_agent" class="btn btn-secondary mb-4">Add/Remove Agents</a>
+    <a href="/execute" class="btn btn-secondary mb-4">Execute Task</a>
+    <a href="/prompts" class="btn btn-secondary mb-4">Prompts</a>
+</div>
+{% endblock %}

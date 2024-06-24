@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Saved Prompts{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="header-section">
+        <h1>Saved Prompts</h1>
+        <p class="text-muted">View and manage your saved prompts</p>
+    </div>
+    <div id="promptsList">
+        {% for prompt in prompts %}
+        <div class="prompt-card">
+            <h3>Agents: {{ prompt.agents | join(', ') }}</h3>
+            <p><strong>Instructions:</strong></p>
+            <pre>{{ prompt.instructions }}</pre>
+            <p><strong>Output:</strong></p>
+            <pre>{{ prompt.output }}</pre>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+<div class="modal fade" id="slackModal" tabindex="-1" aria-labelledby="slackModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="slackModalLabel">Send to Slack</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="slackForm">
+                    <div class="form-group">
+                        <label for="slackRecipient">Select User or Channel:</label>
+                        <input type="text" class="form-control" id="slackRecipient" placeholder="Search for users or channels">
+                        <div id="slackResults" class="mt-2">
+                            <!-- Search results will be displayed here -->
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="slackMessage">Message:</label>
+                        <textarea class="form-control" id="slackMessage" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="
